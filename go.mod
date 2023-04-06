@@ -1,4 +1,4 @@
-module github.com/planxnx/ggsheet-defi-portfolio
+module github.com/planxnx/ggsheet-defi-price
 
 go 1.20
 

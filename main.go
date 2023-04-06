@@ -15,7 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-co-op/gocron"
-	"github.com/planxnx/ggsheet-defi-portfolio/arken"
+	"github.com/planxnx/ggsheet-defi-price/arken"
 	"golang.org/x/oauth2/google"
 	"gopkg.in/Iwark/spreadsheet.v2"
 )
