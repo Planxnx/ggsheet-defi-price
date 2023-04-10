@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "time/tzdata"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-co-op/gocron"
 	"github.com/planxnx/ggsheet-defi-price/arken"
@@ -21,6 +23,16 @@ import (
 )
 
 var google_application_creadential []byte
+
+func init() {
+	TZ := defaultValue(os.Getenv("TZ"), "Asia/Bangkok")
+	loc, err := time.LoadLocation(TZ)
+	if err != nil {
+		log.Printf("[ERROR] failed to load timezone, %+v", err)
+		os.Exit(1)
+	}
+	time.Local = loc
+}
 
 func init() {
 	CREDENTIALS := os.Getenv("CREDENTIALS")
@@ -93,7 +105,7 @@ func main() {
 	}
 
 	s := gocron.NewScheduler(time.UTC)
-	if _, err := s.Cron(cronExp).Do(func() {
+	if _, err := s.Cron(cronExp).StartImmediately().Do(func() {
 		log.Printf("[START] Processeing spreadsheet: %s\n", spreadsheet.Properties.Title)
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
@@ -111,7 +123,7 @@ func main() {
 
 		var (
 			totalTokens float64
-			now         = time.Now()
+			now         = time.Now().Local()
 		)
 
 		// Gracefully shutdown
@@ -186,11 +198,11 @@ func main() {
 	log.Println("[INFO] Stop scheduler")
 }
 
-var zeroSpreadSheetTime = time.Date(1899, time.December, 29, 0, 0, 0, 0, time.UTC)
+var zeroSpreadSheetTime = time.Date(1899, time.December, 30, 0, 0, 0, 0, time.UTC)
 
 func spreadSheetDate(t ...time.Time) int64 {
 	if len(t) == 0 {
-		t = append(t, time.Now())
+		t = append(t, time.Now().Local())
 	}
 	return int64(t[0].Sub(zeroSpreadSheetTime).Hours() / 24)
 }
