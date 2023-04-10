@@ -106,7 +106,7 @@ func main() {
 
 	s := gocron.NewScheduler(time.UTC)
 	if _, err := s.Cron(cronExp).StartImmediately().Do(func() {
-		log.Printf("[START] Processeing spreadsheet: %s\n", spreadsheet.Properties.Title)
+		log.Printf("[START] Processeing spreadsheet: %s, Time: %s\n", spreadsheet.Properties.Title, time.Now().Local())
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
 		if sheetIDPrices == 0 {
