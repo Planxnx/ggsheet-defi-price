@@ -192,12 +192,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			oldPriceValue := cleanSymbol(cols[currentRow-1].Value)
-			oldPrice, err := strconv.ParseFloat(oldPriceValue, 64)
-			if err != nil {
-				log.Printf("[ERROR] failed to get old price (%v) ,%+v\n", oldPriceValue, err)
-			}
-
+			oldPrice := cols[currentRow-1].EffectiveValue().NumberValue
 			change := 1.0
 			if oldPrice != 0 {
 				change = (price - oldPrice) / oldPrice
