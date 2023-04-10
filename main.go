@@ -127,9 +127,9 @@ func main() {
 		)
 
 		currentRow := len(pricesSheet.Columns[0])
-		for _, row := range pricesSheet.Columns[0] {
+		for i, row := range pricesSheet.Columns[0] {
 			if strings.Trim(row.Value, " ") == "" {
-				currentRow = int(row.Row)
+				currentRow = i
 				break
 			}
 		}
@@ -143,22 +143,22 @@ func main() {
 
 			// DEBUG
 			{
-				var newCurrentRow int
+				var nextRow int
 				pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
 				if err != nil {
 					log.Printf("[DEBUG/ERROR] failed to fetch total assets sheet, %+v", err)
 					goto endDebug
 				}
 
-				newCurrentRow = len(pricesSheet.Columns[0])
-				for _, row := range pricesSheet.Columns[0] {
+				nextRow = len(pricesSheet.Columns[0])
+				for i, row := range pricesSheet.Columns[0] {
 					if strings.Trim(row.Value, " ") == "" {
-						currentRow = int(row.Row)
+						nextRow = i
 						break
 					}
 				}
 
-				log.Printf("[DEBUG] beforeRow: %v , currentRow: %v\n", currentRow, newCurrentRow)
+				log.Printf("[DEBUG] currentRow: %v , nextRow: %v\n", currentRow, nextRow)
 			endDebug:
 			}
 
@@ -166,6 +166,7 @@ func main() {
 		}()
 
 		// Add date
+		log.Printf("[DEBUG] Spreadsheet Date: %v\n", spreadSheetDate(now))
 		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%d", spreadSheetDate(now)))
 
 		for i := 1; i < len(pricesSheet.Columns); i++ {
