@@ -198,7 +198,7 @@ func main() {
 	log.Println("[INFO] Stop scheduler")
 }
 
-var zeroSpreadSheetTime = time.Date(1899, time.December, 30, 0, 0, 0, 0, time.UTC)
+var zeroSpreadSheetTime = time.Date(1899, time.December, 30, 0, 0, 0, 0, time.Local)
 
 func spreadSheetDate(t ...time.Time) int64 {
 	if len(t) == 0 {
