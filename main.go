@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -221,12 +220,6 @@ func spreadSheetDate(t ...time.Time) float64 {
 		t = append(t, time.Now().Local())
 	}
 	return (t[0].Sub(zeroSpreadSheetTime).Hours() / 24)
-}
-
-var symbolRegex = regexp.MustCompile(`[$|฿|,]+`)
-
-func cleanSymbol(str string) string {
-	return strings.Trim(symbolRegex.ReplaceAllString(str, ""), " ")
 }
 
 func defaultValue[T comparable](value T, defaultValue ...T) T {
