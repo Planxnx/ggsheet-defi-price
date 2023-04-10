@@ -126,16 +126,6 @@ func main() {
 			now         = time.Now().Local()
 		)
 
-		// Gracefully shutdown
-		defer func() {
-			if err := pricesSheet.Synchronize(); err != nil {
-				log.Printf("[ERROR] failed to sync prices sheet, %+v", err)
-				os.Exit(1)
-			}
-
-			log.Printf("[DONE] Processeing spreadsheet: %s, %v Tokens, Durations: %v\n", spreadsheet.Properties.Title, totalTokens, time.Since(now))
-		}()
-
 		currentRow := len(pricesSheet.Columns[0])
 		for _, row := range pricesSheet.Columns[0] {
 			if strings.Trim(row.Value, " ") == "" {
@@ -144,7 +134,36 @@ func main() {
 			}
 		}
 
-		log.Printf("[DEBUG] Current Row %v\n", currentRow)
+		// Gracefully shutdown
+		defer func() {
+			if err := pricesSheet.Synchronize(); err != nil {
+				log.Printf("[ERROR] failed to sync prices sheet, %+v", err)
+				os.Exit(1)
+			}
+
+			// DEBUG
+			{
+				var newCurrentRow int
+				pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
+				if err != nil {
+					log.Printf("[DEBUG/ERROR] failed to fetch total assets sheet, %+v", err)
+					goto endDebug
+				}
+
+				newCurrentRow = len(pricesSheet.Columns[0])
+				for _, row := range pricesSheet.Columns[0] {
+					if strings.Trim(row.Value, " ") == "" {
+						currentRow = int(row.Row)
+						break
+					}
+				}
+
+				log.Printf("[DEBUG] beforeRow: %v , currentRow: %v\n", currentRow, newCurrentRow)
+			endDebug:
+			}
+
+			log.Printf("[DONE] Processeing spreadsheet: %s, %v Tokens, Durations: %v\n", spreadsheet.Properties.Title, totalTokens, time.Since(now))
+		}()
 
 		// Add date
 		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%d", spreadSheetDate(now)))
