@@ -168,7 +168,7 @@ func main() {
 		// Add date
 		date := spreadSheetDate(now)
 		log.Printf("[DEBUG] Spreadsheet Date: %v\n", date)
-		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%d", date))
+		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%.2f", date))
 
 		for i := 1; i < len(pricesSheet.Columns); i++ {
 			cols := pricesSheet.Columns[i]
@@ -221,11 +221,11 @@ func main() {
 
 var zeroSpreadSheetTime = Must(time.Parse(time.RFC3339, "1899-12-30T00:00:00+07:00"))
 
-func spreadSheetDate(t ...time.Time) int64 {
+func spreadSheetDate(t ...time.Time) float64 {
 	if len(t) == 0 {
 		t = append(t, time.Now().Local())
 	}
-	return int64(t[0].Sub(zeroSpreadSheetTime).Hours() / 24)
+	return (t[0].Sub(zeroSpreadSheetTime).Hours() / 24)
 }
 
 var symbolRegex = regexp.MustCompile(`[$|฿|,]+`)
