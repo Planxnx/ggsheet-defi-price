@@ -166,8 +166,9 @@ func main() {
 		}()
 
 		// Add date
-		log.Printf("[DEBUG] Spreadsheet Date: %v\n", spreadSheetDate(now))
-		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%d", spreadSheetDate(now)))
+		date := spreadSheetDate(now)
+		log.Printf("[DEBUG] Spreadsheet Date: %v\n", date)
+		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%d", date))
 
 		for i := 1; i < len(pricesSheet.Columns); i++ {
 			cols := pricesSheet.Columns[i]
@@ -218,7 +219,7 @@ func main() {
 	log.Println("[INFO] Stop scheduler")
 }
 
-var zeroSpreadSheetTime = time.Date(1899, time.December, 30, 0, 0, 0, 0, time.Local).Local()
+var zeroSpreadSheetTime = Must(time.Parse(time.RFC3339, "1899-12-30T00:00:00+07:00"))
 
 func spreadSheetDate(t ...time.Time) int64 {
 	if len(t) == 0 {
@@ -239,4 +240,22 @@ func defaultValue[T comparable](value T, defaultValue ...T) T {
 		return defaultValue[0]
 	}
 	return value
+}
+
+func Must[T any](val T, err any) T {
+	switch e := err.(type) {
+	case bool:
+		if !e {
+			panic("not ok")
+		}
+	case error:
+		if e != nil {
+			panic(e)
+		}
+	default:
+		if err != nil {
+			panic(fmt.Sprintf("invalid error type, must be bool or error, got %T(%v)", err, err))
+		}
+	}
+	return val
 }
