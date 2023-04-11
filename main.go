@@ -96,15 +96,15 @@ func main() {
 	// Create a new Arken Public API Client
 	arkenAPI := arken.New(apiURL, apiUsername, apiToken)
 
-	// Fetch spreadsheet of Defi Portfolio
-	spreadsheet, err := service.FetchSpreadsheet(spreadsheetID)
-	if err != nil {
-		log.Printf("[ERROR] failed to fetch spreadsheet, %+v", err)
-		os.Exit(1)
-	}
-
 	s := gocron.NewScheduler(time.UTC)
 	if _, err := s.Cron(cronExp).StartImmediately().Do(func() {
+		// Fetch spreadsheet of Defi Portfolio
+		spreadsheet, err := service.FetchSpreadsheet(spreadsheetID)
+		if err != nil {
+			log.Printf("[ERROR] failed to fetch spreadsheet, %+v", err)
+			os.Exit(1)
+		}
+
 		log.Printf("[START] Processeing spreadsheet: %s, Time: %s\n", spreadsheet.Properties.Title, time.Now().Local())
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
@@ -139,35 +139,11 @@ func main() {
 				log.Printf("[ERROR] failed to sync prices sheet, %+v", err)
 				os.Exit(1)
 			}
-
-			// DEBUG
-			{
-				var nextRow int
-				pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
-				if err != nil {
-					log.Printf("[DEBUG/ERROR] failed to fetch total assets sheet, %+v", err)
-					goto endDebug
-				}
-
-				nextRow = len(pricesSheet.Columns[0])
-				for i, row := range pricesSheet.Columns[0] {
-					if strings.Trim(row.Value, " ") == "" {
-						nextRow = i
-						break
-					}
-				}
-
-				log.Printf("[DEBUG] currentRow: %v , nextRow: %v\n", currentRow, nextRow)
-			endDebug:
-			}
-
-			log.Printf("[DONE] Processeing spreadsheet: %s, %v Tokens, Durations: %v\n", spreadsheet.Properties.Title, totalTokens, time.Since(now))
+			log.Printf("[DONE] Processeing spreadsheet: %s at Row %v, %v Tokens, Durations: %v\n", spreadsheet.Properties.Title, currentRow+1, totalTokens, time.Since(now))
 		}()
 
 		// Add date
-		date := spreadSheetDate(now)
-		log.Printf("[DEBUG] Spreadsheet Date: %v\n", date)
-		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%.2f", date))
+		pricesSheet.Update(currentRow, 0, fmt.Sprintf("%.2f", spreadSheetDate(now)))
 
 		for i := 1; i < len(pricesSheet.Columns); i++ {
 			cols := pricesSheet.Columns[i]
