@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"strconv"
@@ -195,7 +196,8 @@ func spreadSheetDate(t ...time.Time) float64 {
 	if len(t) == 0 {
 		t = append(t, time.Now().Local())
 	}
-	return (t[0].Sub(zeroSpreadSheetTime).Hours() / 24)
+
+	return math.Floor(t[0].Sub(zeroSpreadSheetTime).Hours() / 24)
 }
 
 func defaultValue[T comparable](value T, defaultValue ...T) T {
