@@ -164,8 +164,7 @@ func main() {
 
 			price, err := arkenAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
-				log.Printf("[ERROR] failed to get latest price, %+v", err)
-				os.Exit(1)
+				log.Fatalf("[ERROR] failed to get latest price, %+v", err)
 			}
 
 			oldPrice := cols[currentRow-1].EffectiveValue().NumberValue
