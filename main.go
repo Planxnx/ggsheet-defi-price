@@ -91,7 +91,7 @@ func main() {
 	// Load credentials
 	conf, err := google.JWTConfigFromJSON(google_application_creadential, spreadsheet.Scope)
 	if err != nil {
-		logger.PanicContext(ctx, "CREDENTIALS is not valid", slogx.Error(err))
+		logger.FatalContext(ctx, "CREDENTIALS is not valid", slogx.Error(err))
 	}
 
 	// Create a new Spreadsheet Service
@@ -105,7 +105,7 @@ func main() {
 		// Fetch spreadsheet of Defi Portfolio
 		spreadsheet, err := service.FetchSpreadsheet(spreadsheetID)
 		if err != nil {
-			logger.PanicContext(ctx, "Fetch spreadsheet failed", slogx.Error(err))
+			logger.FatalContext(ctx, "Fetch spreadsheet failed", slogx.Error(err))
 		}
 
 		ctx = logger.WithContext(ctx,
@@ -116,13 +116,13 @@ func main() {
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
 		if sheetIDPrices == 0 {
-			logger.PanicContext(ctx, "Invalid Prices Sheet ID")
+			logger.FatalContext(ctx, "Invalid Prices Sheet ID")
 		}
 
 		// Update total assets
 		pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
 		if err != nil {
-			logger.PanicContext(ctx, "Fetch total assets sheet failed", slogx.Error(err))
+			logger.FatalContext(ctx, "Fetch total assets sheet failed", slogx.Error(err))
 		}
 
 		var (
@@ -141,7 +141,7 @@ func main() {
 		// Gracefully shutdown
 		defer func() {
 			if err := pricesSheet.Synchronize(); err != nil {
-				logger.PanicContext(ctx, "Sync prices sheet failed", slogx.Error(err))
+				logger.FatalContext(ctx, "Sync prices sheet failed", slogx.Error(err))
 			}
 			logger.InfoContext(ctx, "[DONE] Processeing spreadsheet", slogx.Int("row", currentRow+1), slogx.Float64("tokens", totalTokens), slogx.Duration("duration", time.Since(now)), slogx.Stringer("durationStr", time.Since(now)))
 		}()
@@ -173,7 +173,7 @@ func main() {
 
 			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
-				logger.PanicContext(ctx, "Failed to get latest price", slogx.Error(err))
+				logger.FatalContext(ctx, "Failed to get latest price", slogx.Error(err))
 			}
 
 			oldPrice := cols[currentRow-1].EffectiveValue().NumberValue
@@ -187,7 +187,7 @@ func main() {
 			totalTokens++
 		}
 	}); err != nil {
-		logger.PanicContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
+		logger.FatalContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
 	}
 
 	s.StartAsync()
