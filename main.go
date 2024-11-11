@@ -30,7 +30,8 @@ func init() {
 		Output: "JSON",
 		Debug:  false,
 	}); err != nil {
-		logger.Panic("Failed to initialize logger: %v", slogx.Error(err))
+		logger.Error("Failed to initialize logger: %v", slogx.Error(err))
+		panic(err)
 	}
 }
 
@@ -38,7 +39,8 @@ func init() {
 	TZ := defaultValue(os.Getenv("TZ"), "Asia/Bangkok")
 	loc, err := time.LoadLocation(TZ)
 	if err != nil {
-		logger.Panic("Failed to load timezone", slogx.Error(err))
+		logger.Error("Failed to load timezone", slogx.Error(err))
+		panic(err)
 	}
 	time.Local = loc
 }
@@ -46,7 +48,8 @@ func init() {
 func init() {
 	CREDENTIALS := os.Getenv("CREDENTIALS")
 	if CREDENTIALS == "" {
-		logger.Panic("CREDENTIALS is not set")
+		logger.Error("CREDENTIALS is not set")
+		panic("CREDENTIALS is not set")
 	}
 
 	var creadential struct {
@@ -62,12 +65,14 @@ func init() {
 		ClientX509CertURL       string `json:"client_x509_cert_url"`
 	}
 	if err := json.Unmarshal([]byte(CREDENTIALS), &creadential); err != nil {
-		logger.Panic("CREDENTIALS is not valid json", slogx.Error(err))
+		logger.Error("CREDENTIALS is not valid json", slogx.Error(err))
+		panic(err)
 	}
 
 	data, err := json.Marshal(creadential)
 	if err != nil {
-		logger.Panic("CREDENTIALS is not valid json", slogx.Error(err))
+		logger.Error("CREDENTIALS is not valid json", slogx.Error(err))
+		panic(err)
 	}
 
 	google_application_creadential = data
@@ -91,7 +96,8 @@ func main() {
 	// Load credentials
 	conf, err := google.JWTConfigFromJSON(google_application_creadential, spreadsheet.Scope)
 	if err != nil {
-		logger.FatalContext(ctx, "CREDENTIALS is not valid", slogx.Error(err))
+		logger.ErrorContext(ctx, "CREDENTIALS is not valid", slogx.Error(err))
+		panic(err)
 	}
 
 	// Create a new Spreadsheet Service
@@ -105,7 +111,8 @@ func main() {
 		// Fetch spreadsheet of Defi Portfolio
 		spreadsheet, err := service.FetchSpreadsheet(spreadsheetID)
 		if err != nil {
-			logger.FatalContext(ctx, "Fetch spreadsheet failed", slogx.Error(err))
+			logger.ErrorContext(ctx, "Fetch spreadsheet failed", slogx.Error(err))
+			panic(err)
 		}
 
 		ctx = logger.WithContext(ctx,
@@ -116,13 +123,15 @@ func main() {
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
 		if sheetIDPrices == 0 {
-			logger.FatalContext(ctx, "Invalid Prices Sheet ID")
+			logger.ErrorContext(ctx, "Invalid Prices Sheet ID")
+			panic("Invalid Prices Sheet ID")
 		}
 
 		// Update total assets
 		pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
 		if err != nil {
-			logger.FatalContext(ctx, "Fetch total assets sheet failed", slogx.Error(err))
+			logger.ErrorContext(ctx, "Fetch total assets sheet failed", slogx.Error(err))
+			panic(err)
 		}
 
 		var (
@@ -141,7 +150,8 @@ func main() {
 		// Gracefully shutdown
 		defer func() {
 			if err := pricesSheet.Synchronize(); err != nil {
-				logger.FatalContext(ctx, "Sync prices sheet failed", slogx.Error(err))
+				logger.ErrorContext(ctx, "Sync prices sheet failed", slogx.Error(err))
+				panic(err)
 			}
 			logger.InfoContext(ctx, "[DONE] Processeing spreadsheet", slogx.Int("row", currentRow+1), slogx.Float64("tokens", totalTokens), slogx.Duration("duration", time.Since(now)), slogx.Stringer("durationStr", time.Since(now)))
 		}()
@@ -173,7 +183,8 @@ func main() {
 
 			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
-				logger.FatalContext(ctx, "Failed to get latest price", slogx.Error(err))
+				logger.ErrorContext(ctx, "Failed to get latest price", slogx.Error(err))
+				panic(err)
 			}
 
 			oldPrice := cols[currentRow-1].EffectiveValue().NumberValue
@@ -187,7 +198,8 @@ func main() {
 			totalTokens++
 		}
 	}); err != nil {
-		logger.FatalContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
+		logger.ErrorContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
+		panic(err)
 	}
 
 	s.StartAsync()

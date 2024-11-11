@@ -15,7 +15,8 @@ type Client struct {
 
 func NewClient(apiKey string) *Client {
 	if apiKey == "" {
-		logger.Panic("empty api key", slogx.String("module", "coingecko"))
+		logger.Error("empty api key", slogx.String("module", "coingecko"))
+		panic("empty api key")
 	}
 
 	client, err := httpclient.New(apiURL, httpclient.Config{
@@ -25,10 +26,11 @@ func NewClient(apiKey string) *Client {
 		},
 	})
 	if err != nil {
-		logger.Panic("failed to create http client",
+		logger.Error("failed to create http client",
 			slogx.String("module", "coingecko"),
 			slogx.String("url", apiURL),
 			slogx.Error(err))
+		panic(err)
 	}
 
 	return &Client{
