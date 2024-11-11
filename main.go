@@ -179,7 +179,7 @@ func main() {
 				slogx.Stringer("address", address),
 			)
 
-			logger.InfoContext(ctx, "[Processing] process token price")
+			logger.InfoContext(ctx, "[Processing] Fetching token price")
 
 			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
@@ -196,6 +196,13 @@ func main() {
 			pricesSheet.Update(currentRow, i, fmt.Sprintf("%f", price))
 			pricesSheet.Update(currentRow, i+1, fmt.Sprintf("%.4f", change))
 			totalTokens++
+
+			logger.InfoContext(ctx, "[Processed] Fetched token price",
+				slogx.Float64("price", price),
+				slogx.Float64("change", change),
+				slogx.Int("row", currentRow),
+				slogx.Int("col", i),
+			)
 		}
 	}); err != nil {
 		logger.ErrorContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
