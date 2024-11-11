@@ -17,7 +17,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-co-op/gocron"
-	"github.com/planxnx/ggsheet-defi-price/arken"
+	"github.com/planxnx/ggsheet-defi-price/coingecko"
 	"golang.org/x/oauth2/google"
 	"gopkg.in/Iwark/spreadsheet.v2"
 )
@@ -68,8 +68,6 @@ func init() {
 }
 
 func main() {
-	apiURL := os.Getenv("API_URL")
-	apiUsername := os.Getenv("API_USERNAME")
 	apiToken := os.Getenv("API_TOKEN")
 	cronExp := defaultValue(os.Getenv("CRON_EXP"), "0 */12 * * *")
 	spreadsheetID := os.Getenv("SPREADSHEET_ID")
@@ -95,7 +93,7 @@ func main() {
 	service := spreadsheet.NewServiceWithClient(conf.Client(ctx))
 
 	// Create a new Arken Public API Client
-	arkenAPI := arken.New(apiURL, apiUsername, apiToken)
+	coingeckoAPI := coingecko.NewClient(apiToken)
 
 	s := gocron.NewScheduler(time.UTC)
 	if _, err := s.Cron(cronExp).StartImmediately().Do(func() {
@@ -162,7 +160,7 @@ func main() {
 
 			log.Printf("Processing %s %s %s\n", name, chainID, address.Hex())
 
-			price, err := arkenAPI.GetPrice(ctx, chainID, address)
+			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
 				log.Fatalf("[ERROR] failed to get latest price, %+v", err)
 			}
