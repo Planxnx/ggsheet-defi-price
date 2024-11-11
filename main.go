@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"os/signal"
@@ -16,6 +15,8 @@ import (
 	_ "time/tzdata"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gaze-network/indexer-network/pkg/logger"
+	"github.com/gaze-network/indexer-network/pkg/logger/slogx"
 	"github.com/go-co-op/gocron"
 	"github.com/planxnx/ggsheet-defi-price/coingecko"
 	"golang.org/x/oauth2/google"
@@ -25,11 +26,19 @@ import (
 var google_application_creadential []byte
 
 func init() {
+	if err := logger.Init(logger.Config{
+		Output: "JSON",
+		Debug:  false,
+	}); err != nil {
+		logger.Panic("Failed to initialize logger: %v", slogx.Error(err))
+	}
+}
+
+func init() {
 	TZ := defaultValue(os.Getenv("TZ"), "Asia/Bangkok")
 	loc, err := time.LoadLocation(TZ)
 	if err != nil {
-		log.Printf("[ERROR] failed to load timezone, %+v", err)
-		os.Exit(1)
+		logger.Panic("Failed to load timezone", slogx.Error(err))
 	}
 	time.Local = loc
 }
@@ -37,8 +46,7 @@ func init() {
 func init() {
 	CREDENTIALS := os.Getenv("CREDENTIALS")
 	if CREDENTIALS == "" {
-		log.Println("CREDENTIALS is not set")
-		os.Exit(1)
+		logger.Panic("CREDENTIALS is not set")
 	}
 
 	var creadential struct {
@@ -54,14 +62,12 @@ func init() {
 		ClientX509CertURL       string `json:"client_x509_cert_url"`
 	}
 	if err := json.Unmarshal([]byte(CREDENTIALS), &creadential); err != nil {
-		log.Printf("[ERROR] CREDENTIALS is not valid json, %+v\n", err)
-		os.Exit(1)
+		logger.Panic("CREDENTIALS is not valid json", slogx.Error(err))
 	}
 
 	data, err := json.Marshal(creadential)
 	if err != nil {
-		log.Printf("[ERROR] CREDENTIALS is not valid json, %+v\n", err)
-		os.Exit(1)
+		logger.Panic("CREDENTIALS is not valid json", slogx.Error(err))
 	}
 
 	google_application_creadential = data
@@ -85,8 +91,7 @@ func main() {
 	// Load credentials
 	conf, err := google.JWTConfigFromJSON(google_application_creadential, spreadsheet.Scope)
 	if err != nil {
-		log.Printf("[ERROR] CREDENTIALS is not valid, %+v\n", err)
-		os.Exit(1)
+		logger.PanicContext(ctx, "CREDENTIALS is not valid", slogx.Error(err))
 	}
 
 	// Create a new Spreadsheet Service
@@ -100,23 +105,24 @@ func main() {
 		// Fetch spreadsheet of Defi Portfolio
 		spreadsheet, err := service.FetchSpreadsheet(spreadsheetID)
 		if err != nil {
-			log.Printf("[ERROR] failed to fetch spreadsheet, %+v", err)
-			os.Exit(1)
+			logger.PanicContext(ctx, "Fetch spreadsheet failed", slogx.Error(err))
 		}
 
-		log.Printf("[START] Processeing spreadsheet: %s, Time: %s\n", spreadsheet.Properties.Title, time.Now().Local())
+		ctx = logger.WithContext(ctx,
+			slogx.String("title", spreadsheet.Properties.Title),
+		)
+
+		logger.InfoContext(ctx, "[START] Processeing spreadsheet", slogx.Time("time", time.Now().Local()))
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
 		if sheetIDPrices == 0 {
-			log.Println("Invalid Prices Sheet ID")
-			os.Exit(1)
+			logger.PanicContext(ctx, "Invalid Prices Sheet ID")
 		}
 
 		// Update total assets
 		pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
 		if err != nil {
-			log.Printf("[ERROR] failed to fetch total assets sheet, %+v", err)
-			os.Exit(1)
+			logger.PanicContext(ctx, "Fetch total assets sheet failed", slogx.Error(err))
 		}
 
 		var (
@@ -135,10 +141,9 @@ func main() {
 		// Gracefully shutdown
 		defer func() {
 			if err := pricesSheet.Synchronize(); err != nil {
-				log.Printf("[ERROR] failed to sync prices sheet, %+v", err)
-				os.Exit(1)
+				logger.PanicContext(ctx, "Sync prices sheet failed", slogx.Error(err))
 			}
-			log.Printf("[DONE] Processeing spreadsheet: %s at Row %v, %v Tokens, Durations: %v\n", spreadsheet.Properties.Title, currentRow+1, totalTokens, time.Since(now))
+			logger.InfoContext(ctx, "[DONE] Processeing spreadsheet", slogx.Int("row", currentRow+1), slogx.Float64("tokens", totalTokens), slogx.Duration("duration", time.Since(now)), slogx.Stringer("durationStr", time.Since(now)))
 		}()
 
 		// Add date
@@ -158,11 +163,17 @@ func main() {
 			chainID := cols[1].Value
 			address := common.HexToAddress(cols[2].Value)
 
-			log.Printf("Processing %s %s %s\n", name, chainID, address.Hex())
+			ctx := logger.WithContext(ctx,
+				slogx.String("name", name),
+				slogx.String("chainId", chainID),
+				slogx.Stringer("address", address),
+			)
+
+			logger.InfoContext(ctx, "[Processing] process token price")
 
 			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
-				log.Fatalf("[ERROR] failed to get latest price, %+v", err)
+				logger.PanicContext(ctx, "Failed to get latest price", slogx.Error(err))
 			}
 
 			oldPrice := cols[currentRow-1].EffectiveValue().NumberValue
@@ -176,15 +187,14 @@ func main() {
 			totalTokens++
 		}
 	}); err != nil {
-		log.Printf("[ERROR] failed to create scheduler, %+v", err)
-		os.Exit(1)
+		logger.PanicContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
 	}
 
 	s.StartAsync()
-	log.Println("[INFO] Start scheduler")
+	logger.InfoContext(ctx, "Start scheduler")
 	<-ctx.Done()
 	s.Stop()
-	log.Println("[INFO] Stop scheduler")
+	logger.InfoContext(ctx, "Stop scheduler")
 }
 
 var zeroSpreadSheetTime = Must(time.Parse(time.RFC3339, "1899-12-30T00:00:00+07:00"))
