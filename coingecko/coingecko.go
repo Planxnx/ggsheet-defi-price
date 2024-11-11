@@ -19,6 +19,7 @@ func NewClient(apiKey string) *Client {
 	}
 
 	client, err := httpclient.New(apiURL, httpclient.Config{
+		Debug: true,
 		Headers: map[string]string{
 			"x-cg-demo-api-key": apiKey,
 		},
