@@ -1,3 +1,8 @@
 .env
 .envrc
 creadential.json
+
+**/cmd.local/**
+**/cmd.local.**/**
+ignore.*
+*.ignore.*
