@@ -14,7 +14,6 @@ import (
 
 	_ "time/tzdata"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gaze-network/indexer-network/pkg/logger"
 	"github.com/gaze-network/indexer-network/pkg/logger/slogx"
 	"github.com/go-co-op/gocron"
@@ -165,18 +164,22 @@ func main() {
 				// required column: Name, ChainID, Address
 				continue
 			}
-			if !common.IsHexAddress(cols[2].Value) {
+			if strings.TrimSpace(cols[1].Value) == "" {
+				// invalid name
+				continue
+			}
+			if strings.TrimSpace(cols[2].Value) == "" {
 				// invalid address
 				continue
 			}
 			name := cols[0].Value
 			chainID := cols[1].Value
-			address := common.HexToAddress(cols[2].Value)
+			address := cols[2].Value
 
 			ctx := logger.WithContext(ctx,
 				slogx.String("name", name),
 				slogx.String("chainId", chainID),
-				slogx.Stringer("address", address),
+				slogx.String("address", address),
 			)
 
 			logger.InfoContext(ctx, "[Processing] Fetching token price")

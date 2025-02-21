@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"github.com/cockroachdb/errors"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gaze-network/indexer-network/common/errs"
 	"github.com/gaze-network/indexer-network/pkg/httpclient"
 	"github.com/valyala/fasthttp"
@@ -19,7 +18,7 @@ type coinHistoricalPriceResponse struct {
 	// TotalVolumes [][]float64 `json:"total_volumes"`
 }
 
-func (c *Client) GetPrice(ctx context.Context, chainId string, address common.Address) (float64, error) {
+func (c *Client) GetPrice(ctx context.Context, chainId string, address string) (float64, error) {
 	platformInfo, ok := PlatformInfos[chainId]
 	if !ok {
 		return -1, errors.Wrapf(errs.Unsupported, "invalid chain id: %s", chainId)
@@ -30,7 +29,7 @@ func (c *Client) GetPrice(ctx context.Context, chainId string, address common.Ad
 		"days":        {"1"},
 		"interval":    {"daily"},
 	}
-	path := path.Join("coins", platformInfo.Id, "contract", address.String(), "market_chart")
+	path := path.Join("coins", platformInfo.Id, "contract", address, "market_chart")
 	httpResp, err := c.client.Do(ctx, fasthttp.MethodGet, path, httpclient.RequestOptions{
 		Query: query,
 	})
