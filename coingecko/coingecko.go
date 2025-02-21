@@ -39,6 +39,11 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
+func (c *Client) IsSupportedChainId(chainId string) bool {
+	_, ok := PlatformInfos[chainId]
+	return ok
+}
+
 // NetworkId -> Platform Info
 // Ref: https://docs.coingecko.com/v3.0.1/reference/asset-platforms-list
 var PlatformInfos = map[string]PlatformInfo{

@@ -184,6 +184,11 @@ func main() {
 
 			logger.InfoContext(ctx, "[Processing] Fetching token price")
 
+			if !coingeckoAPI.IsSupportedChainId(chainID) {
+				logger.ErrorContext(ctx, "Unsupported chain id for CoinGecko", slogx.String("chainId", chainID))
+				continue
+			}
+
 			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
 				logger.ErrorContext(ctx, "Failed to get latest price", slogx.Error(err))
