@@ -7,6 +7,7 @@ import (
 )
 
 // Public/Demo Endpoint
+// Rate-Limit: 10k req/month (322 req/day)
 const apiURL = "https://api.coingecko.com/api/v3"
 
 type Client struct {
@@ -55,6 +56,11 @@ var PlatformInfos = map[string]PlatformInfo{
 		Id:      "binance-smart-chain",
 		ChainId: "56",
 		Name:    "BNB Smart Chain",
+	},
+	"solana": {
+		Id:      "solana",
+		ChainId: "solana",
+		Name:    "Solana",
 	},
 }
 
