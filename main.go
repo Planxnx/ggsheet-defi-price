@@ -14,9 +14,9 @@ import (
 
 	_ "time/tzdata"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gaze-network/indexer-network/pkg/logger"
 	"github.com/gaze-network/indexer-network/pkg/logger/slogx"
-	"github.com/go-co-op/gocron"
 	"github.com/planxnx/ggsheet-defi-price/coingecko"
 	"golang.org/x/oauth2/google"
 	"gopkg.in/Iwark/spreadsheet.v2"
@@ -79,7 +79,6 @@ func init() {
 
 func main() {
 	apiToken := os.Getenv("API_TOKEN")
-	cronExp := defaultValue(os.Getenv("CRON_EXP"), "0 */12 * * *")
 	spreadsheetID := os.Getenv("SPREADSHEET_ID")
 	sheetID := defaultValue(os.Getenv("SHEET_ID_PRICES"), "1493661491")
 
@@ -105,32 +104,37 @@ func main() {
 	// Create a new Arken Public API Client
 	coingeckoAPI := coingecko.NewClient(apiToken)
 
-	s := gocron.NewScheduler(time.UTC)
-	if _, err := s.Cron(cronExp).StartImmediately().Do(func() {
+	exec := func(ctx context.Context) error {
+		logger.InfoContext(ctx, "[START] Fetching spreadsheet", slogx.Time("time", time.Now().Local()))
+
 		// Fetch spreadsheet of Defi Portfolio
+		startFetch := time.Now()
 		spreadsheet, err := service.FetchSpreadsheet(spreadsheetID)
 		if err != nil {
 			logger.ErrorContext(ctx, "Fetch spreadsheet failed", slogx.Error(err))
-			panic(err)
+			return errors.WithStack(err)
 		}
 
 		ctx = logger.WithContext(ctx,
 			slogx.String("title", spreadsheet.Properties.Title),
 		)
 
-		logger.InfoContext(ctx, "[START] Processeing spreadsheet", slogx.Time("time", time.Now().Local()))
+		logger.InfoContext(ctx, "[START] Processeing spreadsheet",
+			slogx.Time("time", time.Now().Local()),
+			slogx.Duration("duration", time.Since(startFetch)),
+		)
 
 		sheetIDPrices, _ := strconv.ParseUint(sheetID, 10, 64)
 		if sheetIDPrices == 0 {
 			logger.ErrorContext(ctx, "Invalid Prices Sheet ID")
-			panic("Invalid Prices Sheet ID")
+			return errors.New("Invalid Prices Sheet ID")
 		}
 
 		// Update total assets
 		pricesSheet, err := spreadsheet.SheetByID(uint(sheetIDPrices))
 		if err != nil {
 			logger.ErrorContext(ctx, "Fetch total assets sheet failed", slogx.Error(err))
-			panic(err)
+			return errors.WithStack(err)
 		}
 
 		var (
@@ -192,7 +196,7 @@ func main() {
 			price, err := coingeckoAPI.GetPrice(ctx, chainID, address)
 			if err != nil {
 				logger.ErrorContext(ctx, "Failed to get latest price", slogx.Error(err))
-				panic(err)
+				return errors.WithStack(err)
 			}
 
 			oldPrice := cols[currentRow-1].EffectiveValue().NumberValue
@@ -212,16 +216,13 @@ func main() {
 				slogx.Int("col", i),
 			)
 		}
-	}); err != nil {
-		logger.ErrorContext(ctx, "Failed to create cronjob scheduler", slogx.Error(err))
-		panic(err)
+		return nil
 	}
 
-	s.StartAsync()
-	logger.InfoContext(ctx, "Start scheduler")
-	<-ctx.Done()
-	s.Stop()
-	logger.InfoContext(ctx, "Stop scheduler")
+	if err := exec(ctx); err != nil {
+		logger.ErrorContext(ctx, "Failed to execute price updater", slogx.Error(err))
+		panic(err)
+	}
 }
 
 var zeroSpreadSheetTime = Must(time.Parse(time.RFC3339, "1899-12-30T00:00:00+07:00"))

@@ -8,7 +8,6 @@ require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/ethereum/go-ethereum v1.11.5
 	github.com/gaze-network/indexer-network v0.7.0
-	github.com/go-co-op/gocron v1.19.0
 )
 
 require (
@@ -20,12 +19,10 @@ require (
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/samber/lo v1.39.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 )
 
